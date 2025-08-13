@@ -1,71 +1,87 @@
-#ส่วนที่ต้องปรับเพิ่มและแก้ไขให้รองรับ การเลือกลำดับสาขา
-1.เพิ่มตาราง register_details สำหรับการเก็บใบสมัครหลาย ๆ รายการ โดยอ้างอิงจากตารางหลักการรับสมัครคือ
-ตาราง register
-#->ในตารางเพิ่ม ฟิวด์ใหม่อีก 3 ฟิวด์ คือ
-#1.reg_priority สำหรับเก็บลำดับที่สาขาที่เลขสมัคร เช่น ลำดับที่ 1 - 2 - 3 มีได้สูงสุด 3 อันดับ
-#2.reg_fee สำหรับเก็บค่าสมัคร 400-300-200
-#3.paymentDisplay400 สำหรับดึงไปแสดงในใบสำหรับจ่ายเงินค่าสมัคร จะผูกเข้ากับ Procedures getpayment
-#4.reg_id รหัสการสมัครเรียน
-
-#getpayment
-CREATE DEFINER=`root`@`localhost` PROCEDURE `getpayment`(
-IN p_reg_year VARCHAR(4),
-IN p_reg_id INT,
-IN p_reg_student VARCHAR(20),
-IN p_reg_project INT
+<h1>การปรับปรุงระบบรับสมัครนักศึกษา - รองรับการเลือกลำดับสาขา</h1>
+<h2>📋 ภาพรวมการเปลี่ยนแปลง</h2>
+<p>ระบบได้รับการปรับปรุงเพื่อรองรับการเลือกสาขาวิชาแบบหลายลำดับ (อันดับ 1-3) โดยเฉพาะสำหรับโครงการ Portfolio</p>
+<h2>🗄️ 1. การปรับปรุงฐานข้อมูล</h2>
+<h3>เพิ่มตาราง <code>register_details</code></h3>
+<pre><code class="language-sql">-- สำหรับเก็บใบสมัครหลายรายการ โดยอ้างอิงจากตารางหลัก register
+CREATE TABLE register_details (
+    reg_id INT,              -- รหัสการสมัครเรียน (FK)
+    reg_priority INT,        -- ลำดับที่สาขา (1-3)
+    reg_course VARCHAR,      -- รหัสสาขาวิชา
+    reg_fee INT,            -- ค่าสมัคร (400-300-200)
+    paymentDisplay400 TEXT   -- ข้อมูลสำหรับใบจ่ายเงิน
+);
+</code></pre>
+<h3>ปรับปรุง Stored Procedure <code>getpayment</code></h3>
+<pre><code class="language-sql">-- เพิ่มฟิลด์ payment_display สำหรับแสดงในใบจ่ายเงิน
+-- รองรับการแสดงค่าสมัคร 200, 300, 400 บาท
+</code></pre>
+<pre><code>
+    CREATE DEFINER=`root`@`localhost` PROCEDURE `getpayment`(
+    IN p_reg_year VARCHAR(4), 
+    IN p_reg_id INT, 
+    IN p_reg_student VARCHAR(20), 
+    IN p_reg_project INT
 )
 BEGIN
-SELECT
-p.id AS project_id,
-p.name_full AS project_name,
-p.name_etc AS project_name_etc,
-p.name_round AS project_round,
-p.name_eng AS project_eng,
-p.name_short AS project_short,
-m.major_id AS major_id,
-m.major_faculty_id AS major_faculty_id,
-m.major_faculty_name AS major_faculty_name,
-m.major_level_id AS major_level_id,
-m.major_level_name AS major_level_name,
-m.major_program_id AS major_program_id,
-m.major_program_code AS major_program_code,
-m.major_program_name AS major_program_name,
-m.major_course AS major_course,
-m.major_course_short AS major_course_short,
-r.reg_id,
-r.reg_code,
-r.reg_student,
-CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),20000) AS payment_display200,
-CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),30000) AS payment_display300,
-CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),40000) AS payment_display400
-FROM register r
-LEFT JOIN project p ON p.id = r.reg_project
-LEFT JOIN major m ON m.major_program_code = r.reg_course
-WHERE r.reg_year = p_reg_year
-AND r.reg_id = p_reg_id
-AND r.reg_student = p_reg_student
-AND r.reg_project = p_reg_project;
+    SELECT
+        p.id AS project_id,
+        p.name_full AS project_name,
+        p.name_etc AS project_name_etc,
+        p.name_round AS project_round,
+        p.name_eng AS project_eng,
+        p.name_short AS project_short,
+        m.major_id AS major_id,
+        m.major_faculty_id AS major_faculty_id,
+        m.major_faculty_name AS major_faculty_name,
+        m.major_level_id AS major_level_id,
+        m.major_level_name AS major_level_name,
+        m.major_program_id AS major_program_id,
+        m.major_program_code AS major_program_code,
+        m.major_program_name AS major_program_name,
+        m.major_course AS major_course,
+        m.major_course_short AS major_course_short,
+        r.reg_id,
+        r.reg_code,
+        r.reg_student,
+        CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),20000) AS payment_display200,
+        CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),30000) AS payment_display300,
+        CONCAT('|099400040150770',CHAR(13),CHAR(10),r.reg_code,CHAR(13),CHAR(10),r.reg_student,CHAR(13),CHAR(10),40000) AS payment_display400
+    FROM register r
+    LEFT JOIN project p ON p.id = r.reg_project
+    LEFT JOIN major m ON m.major_program_code = r.reg_course
+    WHERE r.reg_year = p_reg_year
+      AND r.reg_id = p_reg_id
+      AND r.reg_student = p_reg_student
+      AND r.reg_project = p_reg_project;
 END
 
-#2.Models RegisterDetail
-
-<?php
-
+</code></pre>
+<h2>🏗️ 2. Models</h2>
+<h3>RegisterDetail Model</h3>
+<pre><code class="language-php">&#x3C;?php
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RegisterDetail extends Model
 {
-    use HasFactory;
-        protected $table = 'register_details';
+    protected $table = 'register_details';
+    // รองรับการจัดการรายละเอียดการสมัครแต่ละลำดับ
 }
-
-#3.แก้ส่วนของ controller function page_register_form_step4 
-#ไฟล์ Http/Controllers/PageController.php
-
-    /**
+</code></pre>
+<h2>🎮 3.แก้ส่วนของ controller function page_register_form_step4</h2>
+<h3>Http/Controllers/PageController.php - ฟังก์ชันหลัก</h3>
+<h4><code>page_register_form_step4()</code> - บันทึกการเลือกสาขา</h4>
+<ul>
+<li><strong>โครงการ Portfolio (reg_project = 1)</strong>: ใช้ 2 ตาราง (<code>register</code> + <code>register_details</code>)</li>
+<li><strong>โครงการอื่นๆ</strong>: ใช้ตาราง <code>register</code> ตารางเดียวเหมือนเดิม</li>
+<li>รองรับการเลือกสาขา 1-3 อันดับ</li>
+<li>คำนวณค่าสมัครอัตโนมัติ (200 + 100 + 100 บาท)</li>
+</ul>
+<pre>
+    <code>
+            /**
      * บันทึกข้อมูลการเลือกสาขา (อันดับ 1-3)
     **/
 
@@ -252,8 +268,17 @@ class RegisterDetail extends Model
     }
 
 
-	#page_register_form_step5 สำหรับส่งข้อมูลไปแสดงผลที่ views 
-    public function page_register_form_step5($project_alias, $person_ident)
+
+    </code>
+</pre>
+<h4><code>page_register_form_step5()</code> - แสดงผลการสมัคร</h4>
+<ul>
+<li>ดึงข้อมูลสาขาที่เลือกทั้งหมดตามลำดับอันดับ</li>
+<li>แสดงรายละเอียดแต่ละสาขาพร้อมข้อมูลคณะและหลักสูตร</li>
+</ul>
+<pre>
+    <code>
+        public function page_register_form_step5($project_alias, $person_ident)
     {
 
         $year_SQL = DB::table('year')->first();
@@ -333,7 +358,11 @@ class RegisterDetail extends Model
         }
     }
 
-#เพิ่มฟังชันสำหรับ ดึงข้อมูล ระดับการศึกษา หลักสูตร สาขาวิชา 
+
+    </code>
+</pre>
+<h4>API Functions - เพิ่มฟังชันสำหรับ ดึงข้อมูล ระดับการศึกษา หลักสูตร สาขาวิชา </h4>
+<pre><code class="language-php">// ดึงข้อมูลระดับการศึกษา
 public function getLevels(Request $request)
 {
     try {
@@ -395,12 +424,13 @@ public function getMajors(Request $request)
 }
 
 
-
-#4.แก้ไขส่วนของ views ในไฟล์  views/page_student/register_form_preview.blade.php
-
-#บรรทัดที่ 159-259
-
-                <div class="container my-4">
+</code></pre>
+<h2>🎨 4. Views - หน้าแสดงผล -> แก้ไขส่วนของ views ในไฟล์ views/page_student/register_form_preview.blade.php
+</h2>
+<h3><code>register_form_preview.blade.php</code> (บรรทัด 159-259)</h3>
+<pre>
+    <code>
+        <div class="container my-4">
                     <!-- ส่วนหัว -->
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
                         <div>
@@ -461,49 +491,95 @@ public function getMajors(Request $request)
                     }
                 </style>
 
-#5แก้ส่วนของใน payment ให้สามารถแสดงรายการที่สมัครแต่ละอันดับที่เลือก และราคาค่าสมัคร   400-300-200
-ใน controller InvoiceController function invoice_application_pdf และ invoice_application_pdf_v3 และ invoice_confirm_pdf 
-
-หลักๆ จะอยู่ใน invoice_confirm_pdf 
-
-#6แก้ส่วนของการแสดงรายชื่อ ผู้สมัคร ให้ครอบครุม 
-
-#-------เพิ่มเติม----------------#
-1.เพิ่มช่องให้กรอกความสามารถพิเศษ 
-2.การรองรับการเพิ่มโครงการใหม่ 
-3.เรียงสาขาที่เปิดรับตามตัวอักษร
-
-#ส่วนของ route ที่เกี่ยวข้อง 
-// หน้าเลือกโครงการที่จะสมัคร
+    </code>
+</pre>
+<h4>#5แก้ส่วนของใน payment ให้สามารถแสดงรายการที่สมัครแต่ละอันดับที่เลือก และราคาค่าสมัคร   400-300-200</h4>
+<h5>ใน controller InvoiceController function invoice_application_pdf และ invoice_application_pdf_v3 และ invoice_confirm_pdf </h5>
+<h5><b>หลักๆ จะอยู่ใน invoice_confirm_pdf </b></h5>
+<pre><code class="language-blade">@forelse ($choices as $choice)
+    &#x3C;div class="card shadow-sm mb-4 border-0">
+        &#x3C;div class="card-header bg-gradient-teal text-white fw-bold">
+            สาขาที่สมัครเรียน อันดับ {{ $choice->rank }}
+        &#x3C;/div>
+        &#x3C;div class="card-body">
+            &#x3C;!-- รายละเอียดสาขา คณะ หลักสูตร -->
+        &#x3C;/div>
+    &#x3C;/div>
+@empty
+    &#x3C;div class="alert alert-warning">
+        ไม่พบรายการสาขาที่เลือก
+    &#x3C;/div>
+@endforelse
+</code></pre>
+<h4>Features</h4>
+<ul>
+<li>✨ การ์ดแสดงผลแต่ละลำดับแยกชัดเจน</li>
+<li>🎨 Gradient สีเขียวสวยงาม</li>
+<li>📱 Responsive design</li>
+<li>🔍 แสดงข้อมูลครบถ้วน: รหัส, คณะ, ระดับ, หลักสูตร</li>
+</ul>
+<h2>💰 5. ระบบจ่ายเงิน</h2>
+<h3>InvoiceController - ปรับปรุงฟังก์ชัน</h3>
+<ul>
+<li><code>invoice_application_pdf()</code></li>
+<li><code>invoice_application_pdf_v3()</code></li>
+<li><code>invoice_confirm_pdf()</code></li>
+</ul>
+<h4>ไฟล์ Views ใหม่</h4>
+<ul>
+<li><code>invoice_application_v3_reg_project_1.blade.php</code> - สำหรับแสดงรายการลำดับสาขา</li>
+<li>รองรับการแสดงค่าสมัคร 400-300-200 บาท</li>
+</ul>
+<h2>🛣️ 6. Routes</h2>
+<pre><code class="language-php">// หลัก
 Route::get('/register', [PageController::class, 'page_register']);
-// หน้ากรอก รหัส ปจต ปชช (บันทึก Accout ใหม่ เช็ึค Account เดิม)
 Route::get('/register/{project_alias}', [PageController::class, 'page_register_form']);
-// หน้า คลิกปุ่ม กรอกใบสมัคร
-Route::POST('/register/verify-identity', [PageController::class, 'page_register_form_check'])->name('register.form.check.user');
-// หน้า กรอกฟอร์ม ข้อมูลส่วนตัว
-Route::get('/register/{project_alias}/forms/{person_ident}', [PageController::class, 'page_register_form_step1'])->name('register.form.step1');
-// Update ข้อมูลส่วนตัว
-Route::post('/register/save/personal-information', [PageController::class, 'page_register_form_step2'])->name('register.form.step2');
-// หน้า เลือก สาขาวิชา
+
+// กระบวนการสมัคร
+Route::post('/register/verify-identity', [PageController::class, 'page_register_form_check']);
+Route::get('/register/{project_alias}/forms/{person_ident}', [PageController::class, 'page_register_form_step1']);
+Route::post('/register/save/personal-information', [PageController::class, 'page_register_form_step2']);
 Route::get('/register/{project_alias}/forms/{person_ident}/select-course', [PageController::class, 'page_register_form_step3']);
-// Update การเลือกสาขาวิชา
-Route::post('/register/save/select-course', [PageController::class, 'page_register_form_step4'])->name('register.form.step4');
-// แสดงผลการกรอกข้อมูล
+Route::post('/register/save/select-course', [PageController::class, 'page_register_form_step4']);
 Route::get('/register/{project_alias}/preview/{person_ident}', [PageController::class, 'page_register_form_step5']);
-Route::post('/register/submit=success/preview', [PageController::class, 'page_register_form_preview'])->name('register.form.preview');
-// ยกเลิกการสมัคร
-Route::post('/register/forms/cancel', [PageController::class, 'page_register_form_cancel'])->name('register.form.cancel');
-Route::get('/api/get-levels', [PageController::class, 'getLevels'])->name('api.get.levels');
-Route::get('/api/get-courses', [PageController::class, 'getCourses'])->name('api.get.courses');
-Route::get('/api/get-majors', [PageController::class, 'getMajors'])->name('api.get.majors');
 
-// หน้าพิมพ์ค่าสมัคร
+// API
+Route::get('/api/get-levels', [PageController::class, 'getLevels']);
+Route::get('/api/get-courses', [PageController::class, 'getCourses']);
+Route::get('/api/get-majors', [PageController::class, 'getMajors']);
+
+// ใบจ่ายเงิน
 Route::get('/invoice/application', [InvoiceController::class, 'invoice_application']);
-Route::post('/invoice/application/pdf', [InvoiceController::class, 'invoice_application_pdf'])->name('register.invoice.application.pdf');
-Route::get('/invoice/application/pdf_v2/{reg_id}/{reg_year}/{reg_project}/{reg_student}', [InvoiceController::class, 'invoice_application_pdf']);
-Route::get('/invoice/application/pdf_v3/{reg_id}/{reg_year}/{reg_project}/{reg_student}', [InvoiceController::class, 'invoice_application_pdf_v3']);
-
-#หน้าแก้ไขใบจ่ายเงิน 
+Route::post('/invoice/application/pdf', [InvoiceController::class, 'invoice_application_pdf']);
+</code></pre>
+<h2>🆕 7. ฟีเจอร์เพิ่มเติมที่วางแผน</h2>
+<ul>
+<li>[ ] <strong>ช่องความสามารถพิเศษ</strong> - เพิ่มฟิลด์กรอกทักษะพิเศษ</li>
+<li>[ ] <strong>รองรับโครงการใหม่</strong> - ความยืดหยุ่นในการเพิ่มโครงการ</li>
+<li>[ ] <strong>เรียงสาขาตามตัวอักษร</strong> - จัดเรียงรายการสาขาให้เป็นระเบียบ</li>
+<li>[ ] <strong>ระบบแสดงรายชื่อผู้สมัคร</strong> - ครอบคลุมข้อมูลทุกลำดับ</li>
+</ul>
+<h2>🔄 8. กระบวนการทำงาน</h2>
+<h3>สำหรับโครงการ Portfolio</h3>
+<ol>
+<li><strong>เลือกสาขา</strong> → ผู้สมัครเลือกได้ 1-3 อันดับ</li>
+<li><strong>คำนวณค่าสมัคร</strong> → อันดับ 1: 200฿, อันดับ 2-3: 100฿</li>
+<li><strong>บันทึกข้อมูล</strong> → แยกเก็บใน 2 ตาราง</li>
+<li><strong>แสดงผล</strong> → แสดงรายการทุกลำดับที่เลือก</li>
+<li><strong>ใบจ่ายเงิน</strong> → แสดงค่าสมัครรวมและรายละเอียด</li>
+</ol>
+<h3>สำหรับโครงการอื่น</h3>
+<ul>
+<li>ใช้ระบบเดิม (ตาราง <code>register</code> เพียงตารางเดียว)</li>
+<li>เลือกได้เพียง 1 สาขา</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>📝 หมายเหตุ:</strong> การปรับปรุงนี้รักษาความเข้ากันได้กับระบบเดิม และเพิ่มความยืดหยุ่นสำหรับการพัฒนาในอนาคต</p>
+</blockquote>
+<h4>
+    #หน้าแก้ไขใบจ่ายเงิน 
 views/report/invoice_application_v3.blade.php
+</h4>
 
-#เพิ่มไฟล์ในหน้า views ใหม่ ชื่อ invoice_application_v3_reg_project_1.blade.php สำหรับการแสดงผลรายการลำดับสาขาที่เลือก
+
