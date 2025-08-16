@@ -582,4 +582,50 @@ Route::post('/invoice/application/pdf', [InvoiceController::class, 'invoice_appl
 views/report/invoice_application_v3.blade.php
 </h4>
 
+#แสดงข้อมูล กรณี มี ผู้สมัคร หลายสาขา 
+<pre>
+    <code>
+         @if ($row->reg_course != null)
+                                                <span class="font-text-content">
+                                                    <i class="bi bi-plus-circle-dotted mr-2"></i>รหัส
+                                                    {{ $row->major_program_code }}<br />
+                                                    <i
+                                                        class="bi bi-plus-circle-dotted mr-2"></i>{{ $row->major_faculty_name }}<br />
+                                                    <i class="bi bi-plus-circle-dotted mr-2"></i>ระดับ
+                                                    {{ $row->major_level_name }}<br />
+                                                    <i
+                                                        class="bi bi-plus-circle-dotted mr-2"></i>หลักสูตร{{ $row->major_course }}
+                                                    สาขาวิชา <b>{{ $row->major_program_name }}</b>
+                                                </span>
+                                            @else
+                                                @php
+                                                    $register_details = DB::table('register_details')
+                                                        ->leftJoin(
+                                                            'major',
+                                                            'major.major_program_code',
+                                                            '=',
+                                                            'register_details.reg_course',
+                                                        )
+                                                        ->where('register_details.reg_id', $row->reg_id)
+                                                        ->orderBy('register_details.reg_priority', 'ASC')
+                                                        ->get();
+                                                @endphp
+                                                @foreach ($register_details as $item)
+                                                    <span class="font-text-content">ลำดับที่ {{ $item->reg_priority }} -
+                                                        หลักสูตร{{ $item->major_course }}
+                                                        สาขาวิชา <b>{{ $item->major_program_name }}</b><br />
+                                                        <i class="bi bi-plus-circle-dotted mr-2"></i>รหัส
+                                                        {{ $item->major_program_code }}<br />
+                                                        <i
+                                                            class="bi bi-plus-circle-dotted mr-2"></i>{{ $item->major_faculty_name }}<br />
+                                                        <i class="bi bi-plus-circle-dotted mr-2"></i>ระดับ
+                                                        {{ $item->major_level_name }}<br />
+
+                                                    </span>
+                                                    <hr />
+                                                @endforeach
+                                            @endif
+
+    </code>
+</pre>
 
